@@ -1,0 +1,41 @@
+body { font-family: Arial; margin: 20px; }
+        form { background: #f4f4f4; padding: 20px; border-radius: 5px; margin-bottom: 30px; }
+        select, input, button { margin: 5px; padding: 8px; }
+        button  {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    background: #c0c0c0;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 17px;
+    text-decoration: none;
+    color: #1a1a1a;
+    font-weight: 500;
+}
+
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #5e5e5e; padding: 8px; text-align: left; }
+        th { background: #333; color: white; }
+        td { background: #d8d8d8; }
+        .form-group { display: inline-block; margin-right: 10px; }
+        body {
+            /* Путь к вашему изображению */
+            background-image: url('back.jpg');
+            /* Изображение не повторяется */
+            background-repeat: no-repeat;
+            /* Изображение растягивается, покрывая весь экран */
+            background-size: cover;
+            /* Изображение всегда в центре */
+            background-position: center;
+            /* Фиксируем фон, чтобы он не скроллился */
+            background-attachment: fixed;
+        }
+        nav {
+            background: #333; color: white;
+        }
+        img {
+            background: #ffffff;
+        }
+        
