@@ -22,7 +22,7 @@ body { font-family: Arial; margin: 20px; }
         .form-group { display: inline-block; margin-right: 10px; }
         body {
             /* Путь к вашему изображению */
-            background-image: url('back.jpg');
+            background-image: url('/background/back.jpg');
             /* Изображение не повторяется */
             background-repeat: no-repeat;
             /* Изображение растягивается, покрывая весь экран */

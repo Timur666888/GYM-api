@@ -1,5 +1,5 @@
 <?php
-require 'config.php';
+require '../config.php';
 
 // Получаем ID записи из URL
 $booking_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
         $_POST['booking_time'],
         $booking_id
     ]);
-    header("Location: index.php");
+    header("Location: /");
     exit();
 }
 
@@ -53,7 +53,7 @@ $workouts = $pdo->query("SELECT * FROM workouts")->fetchAll();
 </head>
 <body class="bg-light">
     <div class="container mt-5">
-        <h2>📝 Изменить запись о тренировке</h2>
+        <h2> Изменить запись о тренировке</h2>
         <form method="post">
             <div class="mb-3">
                 <label>Клиент</label>
@@ -105,7 +105,7 @@ $workouts = $pdo->query("SELECT * FROM workouts")->fetchAll();
             </div>
             
             <button type="submit" name="update" class="btn btn-primary">Сохранить изменения</button>
-            <a href="index.php" class="btn btn-secondary">Отмена</a>
+            <a href="/index.php" class="btn btn-secondary">Отмена</a>
         </form>
     </div>
 </body>

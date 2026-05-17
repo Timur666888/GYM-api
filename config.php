@@ -1,4 +1,5 @@
 <?php
+
 $host = 'localhost';
 $dbname = 'fitness_club';
 $username = 'root';

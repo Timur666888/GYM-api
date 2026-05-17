@@ -1,6 +1,6 @@
 <?php
 
-require 'config.php';
+require '../config.php';
 
 
 if (isset($_GET['id'])) {
@@ -9,7 +9,7 @@ if (isset($_GET['id'])) {
     $stmt->execute([$id]);
 }
 
-header("Location: view.clients.php");
+header("Location: /views/view.clients.php");
 exit();
 ?>
 
