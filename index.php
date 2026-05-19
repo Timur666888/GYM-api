@@ -1,279 +1,106 @@
 <?php
-require './config.php';
+require_once './config.php';
+require_once './api/helpers.php';
 
 $request_method = $_SERVER['REQUEST_METHOD'];
 $request_uri = $_SERVER['REQUEST_URI'];
 $path = parse_url($request_uri, PHP_URL_PATH);
 
+// API Роутинг
 if (strpos($path, '/api/') === 0) {
     header('Content-Type: application/json');
     
-    if ($request_method === 'GET' && $path === '/api/bookings') {
-        $stmt = $pdo->query("
-            SELECT b.*, c.name as client_name, t.name as trainer_name, h.name as hall_name, w.name as workout_name 
-            FROM bookings b
-            JOIN clients c ON b.client_id = c.id
-            JOIN trainers t ON b.trainer_id = t.id
-            JOIN halls h ON b.hall_id = h.id
-            JOIN workouts w ON b.workout_id = w.id
-            ORDER BY b.booking_date DESC, b.booking_time DESC
-        ");
-        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
-        exit;
-    }
+    // Определяем тип endpoint
+    $endpoint = str_replace('/api/', '', $path);
+    $resource = explode('/', $endpoint)[0];
+    $id = isset(explode('/', $endpoint)[1]) ? explode('/', $endpoint)[1] : null;
     
-    if ($request_method === 'GET' && preg_match('/\/api\/bookings\/(\d+)/', $path, $matches)) {
-        $id = $matches[1];
-        $stmt = $pdo->prepare("
-            SELECT b.*, c.name as client_name, t.name as trainer_name, h.name as hall_name, w.name as workout_name 
-            FROM bookings b
-            JOIN clients c ON b.client_id = c.id
-            JOIN trainers t ON b.trainer_id = t.id
-            JOIN halls h ON b.hall_id = h.id
-            JOIN workouts w ON b.workout_id = w.id
-            WHERE b.id = ?
-        ");
-        $stmt->execute([$id]);
-        $booking = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($booking) {
-            echo json_encode($booking);
-        } else {
-            http_response_code(404);
-            echo json_encode(['error' => 'Booking not found']);
-        }
-        exit;
+    switch ($request_method) {
+        case 'GET':
+            switch ($resource) {
+                case 'bookings':
+                    if ($id) {
+                        getBookingById($pdo, $id);
+                    } else {
+                        getAllBookings($pdo);
+                    }
+                    break;
+                case 'clients':
+                    getAllClients($pdo);
+                    break;
+                case 'trainers':
+                    getAllTrainers($pdo);
+                    break;
+                case 'halls':
+                    getAllHalls($pdo);
+                    break;
+                case 'workouts':
+                    getAllWorkouts($pdo);
+                    break;
+                default:
+                    sendError(404, 'API endpoint not found');
+            }
+            break;
+            
+        case 'POST':
+            switch ($resource) {
+                case 'bookings':
+                    createBooking($pdo);
+                    break;
+                case 'clients':
+                    createClient($pdo);
+                    break;
+                case 'trainers':
+                    createTrainer($pdo);
+                    break;
+                case 'halls':
+                    createHall($pdo);
+                    break;
+                case 'workouts':
+                    createWorkout($pdo);
+                    break;
+                default:
+                    sendError(404, 'API endpoint not found');
+            }
+            break;
+            
+        case 'PUT':
+            if ($resource === 'bookings' && $id) {
+                updateBooking($pdo, $id);
+            } else {
+                sendError(404, 'API endpoint not found');
+            }
+            break;
+            
+        case 'DELETE':
+            if ($resource === 'bookings' && $id) {
+                deleteBooking($pdo, $id);
+            } else {
+                sendError(404, 'API endpoint not found');
+            }
+            break;
+            
+        default:
+            sendError(405, 'Method not allowed');
     }
-    
-    if ($request_method === 'POST' && $path === '/api/bookings') {
-        $data = json_decode(file_get_contents('php://input'), true);
-        
-        if (!$data || !isset($data['client_id']) || !isset($data['trainer_id']) || 
-            !isset($data['hall_id']) || !isset($data['workout_id']) || 
-            !isset($data['booking_date']) || !isset($data['booking_time'])) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Missing required fields']);
-            exit;
-        }
-        
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*) FROM bookings 
-            WHERE hall_id = ? AND booking_date = ? AND booking_time = ?
-        ");
-        $stmt->execute([$data['hall_id'], $data['booking_date'], $data['booking_time']]);
-        if ($stmt->fetchColumn() > 0) {
-            http_response_code(409);
-            echo json_encode(['error' => 'Hall is already booked at this time']);
-            exit;
-        }
-        
-        $stmt = $pdo->prepare("
-            INSERT INTO bookings (client_id, trainer_id, hall_id, workout_id, booking_date, booking_time) 
-            VALUES (:client_id, :trainer_id, :hall_id, :workout_id, :booking_date, :booking_time)
-        ");
-        $stmt->execute([
-            $data['client_id'], $data['trainer_id'], $data['hall_id'], 
-            $data['workout_id'], $data['booking_date'], $data['booking_time']
-        ]);
-        
-        $id = $pdo->lastInsertId();
-        $stmt = $pdo->prepare("SELECT * FROM bookings WHERE id = :id");
-        $stmt->execute([$id]);
-        
-        http_response_code(201);
-        echo json_encode($stmt->fetch(PDO::FETCH_ASSOC));
-        exit;
-    }
-    
-    if ($request_method === 'PUT' && preg_match('/\/api\/bookings\/(\d+)/', $path, $matches)) {
-        $id = $matches[1];
-        $data = json_decode(file_get_contents('php://input'), true);
-        
-        if (!$data) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Invalid JSON data']);
-            exit;
-        }
-        
-        $updates = [];
-        $params = [];
-        
-        if (isset($data['client_id'])) {
-            $updates[] = "client_id = :client_id";
-            $params[] = $data['client_id'];
-        }
-        if (isset($data['trainer_id'])) {
-            $updates[] = "trainer_id = :trainer_id";
-            $params[] = $data['trainer_id'];
-        }
-        if (isset($data['hall_id'])) {
-            $updates[] = "hall_id = :hall_id";
-            $params[] = $data['hall_id'];
-        }
-        if (isset($data['workout_id'])) {
-            $updates[] = "workout_id = workout_id";
-            $params[] = $data['workout_id'];
-        }
-        if (isset($data['booking_date'])) {
-            $updates[] = "booking_date = :booking_date";
-            $params[] = $data['booking_date'];
-        }
-        if (isset($data['booking_time'])) {
-            $updates[] = "booking_time = booking_time";
-            $params[] = $data['booking_time'];
-        }
-        
-        if (empty($updates)) {
-            http_response_code(400);
-            echo json_encode(['error' => 'No fields to update']);
-            exit;
-        }
-        
-        $params[] = $id;
-        $sql = "UPDATE bookings SET " . implode(", ", $updates) . " WHERE id = :id";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        
-        if ($stmt->rowCount() > 0) {
-            $stmt = $pdo->prepare("SELECT * FROM bookings WHERE id = :id");
-            $stmt->execute([$id]);
-            echo json_encode($stmt->fetch(PDO::FETCH_ASSOC));
-        } else {
-            http_response_code(404);
-            echo json_encode(['error' => 'Booking not found or no changes made']);
-        }
-        exit;
-    }
-    
-    if ($request_method === 'DELETE' && preg_match('/\/api\/bookings\/(\d+)/', $path, $matches)) {
-        $id = $matches[1];
-        $stmt = $pdo->prepare("DELETE FROM bookings WHERE id = :id");
-        $stmt->execute([$id]);
-        
-        if ($stmt->rowCount() > 0) {
-            echo json_encode(['message' => 'Booking deleted successfully']);
-        } else {
-            http_response_code(404);
-            echo json_encode(['error' => 'Booking not found']);
-        }
-        exit;
-    }
-    
-    if ($request_method === 'GET' && $path === '/api/clients') {
-        $stmt = $pdo->query("SELECT * FROM clients ORDER BY name");
-        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
-        exit;
-    }
-    
-    // POST /api/clients - создать клиента
-    if ($request_method === 'POST' && $path === '/api/clients') {
-        $data = json_decode(file_get_contents('php://input'), true);
-        if ($data && isset($data['name'])) {
-            $stmt = $pdo->prepare("INSERT INTO clients (name) VALUES (?)");
-            $stmt->execute([$data['name']]);
-            http_response_code(201);
-            echo json_encode(['id' => $pdo->lastInsertId(), 'name' => $data['name']]);
-        } else {
-            http_response_code(400);
-            echo json_encode(['error' => 'Name is required']);
-        }
-        exit;
-    }
-    
-    // GET /api/trainers - получить всех тренеров
-    if ($request_method === 'GET' && $path === '/api/trainers') {
-        $stmt = $pdo->query("SELECT * FROM trainers ORDER BY name");
-        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
-        exit;
-    }
-    
-    // POST /api/trainers - создать тренера
-    if ($request_method === 'POST' && $path === '/api/trainers') {
-        $data = json_decode(file_get_contents('php://input'), true);
-        if ($data && isset($data['name'])) {
-            $stmt = $pdo->prepare("INSERT INTO trainers (name) VALUES (?)");
-            $stmt->execute([$data['name']]);
-            http_response_code(201);
-            echo json_encode(['id' => $pdo->lastInsertId(), 'name' => $data['name']]);
-        } else {
-            http_response_code(400);
-            echo json_encode(['error' => 'Name is required']);
-        }
-        exit;
-    }
-    
-    // GET /api/halls - получить все залы
-    if ($request_method === 'GET' && $path === '/api/halls') {
-        $stmt = $pdo->query("SELECT * FROM halls ORDER BY name");
-        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
-        exit;
-    }
-    
-    // POST /api/halls - создать зал
-    if ($request_method === 'POST' && $path === '/api/halls') {
-        $data = json_decode(file_get_contents('php://input'), true);
-        if ($data && isset($data['name'])) {
-            $stmt = $pdo->prepare("INSERT INTO halls (name) VALUES (?)");
-            $stmt->execute([$data['name']]);
-            http_response_code(201);
-            echo json_encode(['id' => $pdo->lastInsertId(), 'name' => $data['name']]);
-        } else {
-            http_response_code(400);
-            echo json_encode(['error' => 'Name is required']);
-        }
-        exit;
-    }
-    
-    // GET /api/workouts - получить все тренировки
-    if ($request_method === 'GET' && $path === '/api/workouts') {
-        $stmt = $pdo->query("SELECT * FROM workouts ORDER BY name");
-        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
-        exit;
-    }
-    
-    // POST /api/workouts - создать тип тренировки
-    if ($request_method === 'POST' && $path === '/api/workouts') {
-        $data = json_decode(file_get_contents('php://input'), true);
-        if ($data && isset($data['name'])) {
-            $stmt = $pdo->prepare("INSERT INTO workouts (name) VALUES (?)");
-            $stmt->execute([$data['name']]);
-            http_response_code(201);
-            echo json_encode(['id' => $pdo->lastInsertId(), 'name' => $data['name']]);
-        } else {
-            http_response_code(400);
-            echo json_encode(['error' => 'Name is required']);
-        }
-        exit;
-    }
-    
-    // Если API endpoint не найден
-    http_response_code(404);
-    echo json_encode(['error' => 'API endpoint not found']);
     exit;
 }
 
+// Обработка формы записи
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['book'])) {
-    $stmt = $pdo->prepare("INSERT INTO bookings (client_id, trainer_id, hall_id, workout_id, booking_date, booking_time) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->execute([$_POST['client_id'], $_POST['trainer_id'], $_POST['hall_id'], $_POST['workout_id'], $_POST['booking_date'], $_POST['booking_time']]);
+    createBookingFromForm($pdo);
     header("Location: index.php");
     exit;
 }
 
-$clients = $pdo->query("SELECT * FROM clients")->fetchAll();
-$trainers = $pdo->query("SELECT * FROM trainers")->fetchAll();
-$halls = $pdo->query("SELECT * FROM halls")->fetchAll();
-$workouts = $pdo->query("SELECT * FROM workouts")->fetchAll();
-
-$bookings = $pdo->query("
-    SELECT b.*, c.name as client_name, t.name as trainer_name, h.name as hall_name, w.name as workout_name 
-    FROM bookings b
-    JOIN clients c ON b.client_id = c.id
-    JOIN trainers t ON b.trainer_id = t.id
-    JOIN halls h ON b.hall_id = h.id
-    JOIN workouts w ON b.workout_id = w.id
-    ORDER BY b.booking_date DESC, b.booking_time DESC
-")->fetchAll();
+// Получение данных для отображения
+$clients = getAllClientsData($pdo);
+$trainers = getAllTrainersData($pdo);
+$halls = getAllHallsData($pdo);
+$workouts = getAllWorkoutsData($pdo);
+$bookings = getAllBookingsData($pdo);
 ?>
+
 
 <!DOCTYPE html>
 <html lang="ru">

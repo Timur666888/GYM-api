@@ -1,0 +1,687 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Фитнес-клуб API",
+    "description": "API для управления тренировками в фитнес-клубе",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Support",
+      "email": "support@fitness-club.ru"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://GYM",
+      "description": "Локальный сервер"
+    }
+  ],
+  "tags": [
+    {
+      "name": "bookings",
+      "description": "Управление записями на тренировки"
+    },
+    {
+      "name": "clients",
+      "description": "Управление клиентами"
+    },
+    {
+      "name": "trainers",
+      "description": "Управление тренерами"
+    },
+    {
+      "name": "halls",
+      "description": "Управление залами"
+    },
+    {
+      "name": "workouts",
+      "description": "Управление типами тренировок"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Booking": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1,
+            "description": "Уникальный идентификатор записи"
+          },
+          "client_id": {
+            "type": "integer",
+            "example": 1,
+            "description": "ID клиента"
+          },
+          "trainer_id": {
+            "type": "integer",
+            "example": 1,
+            "description": "ID тренера"
+          },
+          "hall_id": {
+            "type": "integer",
+            "example": 1,
+            "description": "ID зала"
+          },
+          "workout_id": {
+            "type": "integer",
+            "example": 1,
+            "description": "ID типа тренировки"
+          },
+          "booking_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2024-12-25",
+            "description": "Дата тренировки (YYYY-MM-DD)"
+          },
+          "booking_time": {
+            "type": "string",
+            "format": "time",
+            "example": "18:00:00",
+            "description": "Время тренировки (HH:MM:SS)"
+          },
+          "client_name": {
+            "type": "string",
+            "example": "Иван Иванов",
+            "description": "Имя клиента (при JOIN запросе)"
+          },
+          "trainer_name": {
+            "type": "string",
+            "example": "Анна Смирнова",
+            "description": "Имя тренера (при JOIN запросе)"
+          },
+          "hall_name": {
+            "type": "string",
+            "example": "Зал силовых тренировок",
+            "description": "Название зала (при JOIN запросе)"
+          },
+          "workout_name": {
+            "type": "string",
+            "example": "Кроссфит",
+            "description": "Название тренировки (при JOIN запросе)"
+          }
+        }
+      },
+      "BookingInput": {
+        "type": "object",
+        "required": [
+          "client_id",
+          "trainer_id",
+          "hall_id",
+          "workout_id",
+          "booking_date",
+          "booking_time"
+        ],
+        "properties": {
+          "client_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "trainer_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "hall_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "workout_id": {
+            "type": "integer",
+            "example": 1
+          },
+          "booking_date": {
+            "type": "string",
+            "format": "date",
+            "example": "2024-12-25"
+          },
+          "booking_time": {
+            "type": "string",
+            "format": "time",
+            "example": "18:00:00"
+          }
+        }
+      },
+      "Client": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Иван Иванов"
+          }
+        }
+      },
+      "ClientInput": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Иван Иванов"
+          }
+        }
+      },
+      "Trainer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Анна Смирнова"
+          }
+        }
+      },
+      "TrainerInput": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Анна Смирнова"
+          }
+        }
+      },
+      "Hall": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Зал силовых тренировок"
+          }
+        }
+      },
+      "HallInput": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Зал силовых тренировок"
+          }
+        }
+      },
+      "Workout": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Кроссфит"
+          }
+        }
+      },
+      "WorkoutInput": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Кроссфит"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Missing required fields"
+          }
+        }
+      },
+      "Success": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Booking deleted successfully"
+          }
+        }
+      }
+    },
+    "responses": {
+      "400Error": {
+        "description": "Неверный запрос",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "404Error": {
+        "description": "Ресурс не найден",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "409Error": {
+        "description": "Конфликт (зал уже занят)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/bookings": {
+      "get": {
+        "tags": ["bookings"],
+        "summary": "Получить все записи на тренировки",
+        "description": "Возвращает список всех записей с подробной информацией о клиентах, тренерах, залах и тренировках",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Booking"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "client_id": 1,
+                    "trainer_id": 1,
+                    "hall_id": 1,
+                    "workout_id": 1,
+                    "booking_date": "2024-12-25",
+                    "booking_time": "18:00:00",
+                    "client_name": "Иван Иванов",
+                    "trainer_name": "Анна Смирнова",
+                    "hall_name": "Зал силовых тренировок",
+                    "workout_name": "Кроссфит"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["bookings"],
+        "summary": "Создать новую запись",
+        "description": "Создает новую запись на тренировку. Проверяет, свободен ли зал в указанное время",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Запись успешно создана",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/409Error"
+          }
+        }
+      }
+    },
+    "/api/bookings/{id}": {
+      "get": {
+        "tags": ["bookings"],
+        "summary": "Получить запись по ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID записи"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/404Error"
+          }
+        }
+      },
+      "put": {
+        "tags": ["bookings"],
+        "summary": "Обновить запись",
+        "description": "Обновляет указанные поля записи (можно обновлять частично)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "client_id": {
+                    "type": "integer",
+                    "example": 2
+                  },
+                  "trainer_id": {
+                    "type": "integer",
+                    "example": 2
+                  },
+                  "hall_id": {
+                    "type": "integer",
+                    "example": 2
+                  },
+                  "booking_date": {
+                    "type": "string",
+                    "format": "date",
+                    "example": "2024-12-26"
+                  },
+                  "booking_time": {
+                    "type": "string",
+                    "format": "time",
+                    "example": "19:00:00"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Запись успешно обновлена",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/404Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["bookings"],
+        "summary": "Удалить запись",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Запись успешно удалена",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Success"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/404Error"
+          }
+        }
+      }
+    },
+    "/api/clients": {
+      "get": {
+        "tags": ["clients"],
+        "summary": "Получить всех клиентов",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Client"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["clients"],
+        "summary": "Создать нового клиента",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Клиент успешно создан",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Client"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400Error"
+          }
+        }
+      }
+    },
+    "/api/trainers": {
+      "get": {
+        "tags": ["trainers"],
+        "summary": "Получить всех тренеров",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Trainer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["trainers"],
+        "summary": "Создать нового тренера",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainerInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Тренер успешно создан",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Trainer"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400Error"
+          }
+        }
+      }
+    },
+    "/api/halls": {
+      "get": {
+        "tags": ["halls"],
+        "summary": "Получить все залы",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Hall"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["halls"],
+        "summary": "Создать новый зал",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HallInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Зал успешно создан",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Hall"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400Error"
+          }
+        }
+      }
+    },
+    "/api/workouts": {
+      "get": {
+        "tags": ["workouts"],
+        "summary": "Получить все типы тренировок",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Workout"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["workouts"],
+        "summary": "Создать новый тип тренировки",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Тип тренировки успешно создан",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Workout"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400Error"
+          }
+        }
+      }
+    }
+  }
+}
